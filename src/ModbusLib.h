@@ -27,14 +27,12 @@ public:
   ModbusLib(int deviceSerialNumber, int deviceBRate); //constructor for normal operation
 
   
-  void begin(); //to be called in startup in main
+  void begin(); //to be called in startup in main  
 
-  //void SendRequestTest();
+  double readRegisterValue(int slaveNetworkAddress, uint8_t registerAddress, dataFormat conversionMethod);
 
-  void sendRequest(uint8_t request[]); 
+  void SetDebugMode(bool var);
   
-  void readHoldingRegisters(int deviceNetworkAddress, uint16_t registerAddress, uint8_t responseBuffer[]);
-  uint8_t * waitForResponse();
 
 private:
   
@@ -51,9 +49,18 @@ private:
   uint32_t readTimeoutMillis = 5000;
   uint32_t readStartTime = 0;
 
-  
+  //modbus functions
+  static const uint8_t readHoldingRegistersFunction = 0x03;
+
+
   //Functions
-  
+  void sendRequest(uint8_t request[]); 
+  uint8_t * waitForResponse();
+
+
+  float real4Conversion(uint8_t message[9]);
+  uint8_t GetCrcLo(uint8_t message[]);
+  uint8_t GetCrcHi(uint8_t message[]);
 
 
 

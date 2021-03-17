@@ -1,5 +1,5 @@
 /*
- * Project usage
+ * Project ModbusLibTesting
  * Description:
  * Author:
  * Date:
@@ -25,27 +25,24 @@ void setup()
 
   //delay(5000);
   modbusLib.begin();
+  modbusLib.SetDebugMode(false);
 
 }
 
 
 void loop() 
 {
-  //send request
-  uint8_t hardcodedRequest[8] = {15, 0x03, 0x00, 0xDD, 0x00, 0x02, 0x55, 0x1F};
-  modbusLib.sendRequest(hardcodedRequest);
+  double id15 = modbusLib.readRegisterValue(15,0xDD, dataFormat::Real4);
+  Serial.println("Internal Diameter of slave 15: " + (String)id15);
 
-  //get response
-  uint8_t * response = modbusLib.waitForResponse();
+  double id16 = modbusLib.readRegisterValue(16,0xDD, dataFormat::Real4);
+  Serial.println("Internal Diameter of slave 16: " + (String)id16);
 
-  //print response to check
-  Serial.print("Response: ");
-  for(int i = 0; i< 9; i++)
-  {
-    Serial.print(*(response + i), HEX);
-    Serial.print(" ");
-  }
-  Serial.println();
+  double id17 = modbusLib.readRegisterValue(17,0xDD, dataFormat::Real4);
+  Serial.println("Internal Diameter of slave 17: " + (String)id17);
+
+  double id18 = modbusLib.readRegisterValue(18,0xDD, dataFormat::Real4);
+  Serial.println("Internal Diameter of slave 18: " + (String)id18);
   
   delay(5000);
 
