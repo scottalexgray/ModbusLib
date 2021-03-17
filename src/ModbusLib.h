@@ -3,8 +3,6 @@
 /* ModbusLib library by Scott Alexander Gray
  */
 
-// This will load the definition for common Particle variable types
-#include "Particle.h"
 
 // This is your main class that users will import into their application
 class ModbusLib
