@@ -15,10 +15,10 @@
  * @arg deviceBRate [Mandatory] baud rate of deivce
  * @arg debugSerial [Mandatory] debug serial port reference
  */
-ModbusLib::ModbusLib(int deviceSerialNumber, int deviceBRate, int txPin, bool isDebugEnabled)
+ModbusLib::ModbusLib(int serialPortNumber, int deviceBRate, int txPin, bool isDebugEnabled)
 {
     //device stuff
-    deviceSerialNum = deviceSerialNumber;
+    deviceSerialNum = serialPortNumber;
     deviceBaudRate = deviceBRate;
     txEnablePin = txPin;
 
@@ -26,10 +26,10 @@ ModbusLib::ModbusLib(int deviceSerialNumber, int deviceBRate, int txPin, bool is
     debugEnabled = isDebugEnabled;
 
 }
-ModbusLib::ModbusLib(int deviceSerialNumber, int deviceBRate)
+ModbusLib::ModbusLib(int serialPortNumber, int deviceBRate)
 {
   // be sure not to call anything that requires hardware be initialized here, put those in begin()
-    deviceSerialNum = deviceSerialNumber;
+    deviceSerialNum = serialPortNumber;
     deviceBaudRate = deviceBRate;
 
     debugEnabled = false; //not strictly necessary as the default is disabled

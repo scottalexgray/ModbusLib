@@ -23,8 +23,8 @@ public:
  * @arg deviceBRate [Mandatory] baud rate of deivce
  * @arg debugSerial [Mandatory] debug serial port reference
  */
-  ModbusLib(int deviceSerialNumber, int deviceBRate, int txPin, bool isDebugEnabled); //constructor for debugging
-  ModbusLib(int deviceSerialNumber, int deviceBRate); //constructor for normal operation
+  ModbusLib(int serialPortNumber, int deviceBRate, int txPin, bool isDebugEnabled); //constructor for debugging
+  ModbusLib(int serialPortNumber, int deviceBRate); //constructor for normal operation
 
   
   void begin(); //to be called in startup in main  
