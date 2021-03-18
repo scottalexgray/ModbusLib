@@ -29,13 +29,17 @@ public:
   
   void begin(); //to be called in startup in main  
 
-  double readRegisterValue(int slaveNetworkAddress, uint8_t registerAddress, dataFormat conversionMethod);
+  double readRegisterValue(int slaveNetworkAddress, uint16_t registerAddress, dataFormat conversionMethod);
 
   void SetDebugMode(bool var);
   
 
 private:
   
+  //static constants
+  static const int requestLen = 8; //length in bytes
+  static const int responseLen = 9; //length in bytes
+
   //device variables
   USARTSerial deviceSerialPort = Serial1; //serial where requests are made and responses are read from
   int deviceSerialNum = 1;
@@ -52,17 +56,16 @@ private:
   //modbus functions
   static const uint8_t readHoldingRegistersFunction = 0x03;
 
-
   //Functions
   void sendRequest(uint8_t request[]); 
   uint8_t * waitForResponse();
 
-
+  //Utility Functions
   float real4Conversion(uint8_t message[9]);
+  int intConversion(uint8_t message[9]);
+  long longConversion(uint8_t message[9]);
+
+
   uint8_t GetCrcLo(uint8_t message[]);
   uint8_t GetCrcHi(uint8_t message[]);
-
-
-
-
 };

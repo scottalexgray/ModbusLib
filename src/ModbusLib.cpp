@@ -78,7 +78,7 @@ void ModbusLib::sendRequest(uint8_t request[])
     if(Serial.availableForWrite() && debugEnabled)
     {
         Serial.print("Request Transmitted: ");
-        for (int i = 0; i < 8; i++) //always 8 for modbus
+        for (int i = 0; i < requestLen; i++)
         {		
             Serial.print(request[i], HEX);
             Serial.print(" ");		
@@ -92,7 +92,7 @@ void ModbusLib::sendRequest(uint8_t request[])
 
 	if(deviceSerialPort.availableForWrite())
 	{
-		for (int i = 0; i < 8; i++) 
+		for (int i = 0; i < requestLen; i++) 
 		{
 			deviceSerialPort.write(request[i]);		 			
 		}        
@@ -108,7 +108,8 @@ uint8_t * ModbusLib::waitForResponse()
     digitalWrite(txEnablePin, LOW); //set the transmit pin low (to receive data)
     delay(30);
 
-    static uint8_t modbusReply[9]; //buffer to store response (could optimise by making length 9)	
+    //static const int responseLength = 10;
+    static uint8_t modbusReply[responseLen]; //buffer to store response (could optimise by making length 9)	
 
 	readStartTime = millis(); //the milliseconds since boot
 
@@ -117,10 +118,10 @@ uint8_t * ModbusLib::waitForResponse()
 	while(millis() < (readStartTime + readTimeoutMillis))
 	{
 		//SerialMon.println("Stuck here for tick");
-		if(deviceSerialPort.available())
+		if(deviceSerialPort.available() && index < responseLen) //Ensures data can be read, and that we don't overflow the modbusReply buffer
 		{
-			modbusReply[index] = deviceSerialPort.read();			
-			index++;
+			modbusReply[index] = deviceSerialPort.read();            		
+			index++;            
 		}
 		else
 		{
@@ -130,7 +131,7 @@ uint8_t * ModbusLib::waitForResponse()
     if(Serial.availableForWrite() && debugEnabled)
     {
         Serial.print("Response Received: ");
-        for (int i = 0; i < 8; i++) //always 8 for modbus
+        for (int i = 0; i < responseLen; i++) 
         {		
             Serial.print(modbusReply[i], HEX);
             Serial.print(" ");		
@@ -141,17 +142,32 @@ uint8_t * ModbusLib::waitForResponse()
 }
 
 
-double ModbusLib::readRegisterValue(int slaveNetworkAddress, uint8_t registerAddress, dataFormat conversionMethod) //returning as long as a long integer contains more natural precision than float
+double ModbusLib::readRegisterValue(int slaveNetworkAddress, uint16_t registerAddress, dataFormat conversionMethod) //returning as long as a long integer contains more natural precision than float
 {
     //create request
-    uint8_t requestBuffer[8];
+    uint8_t requestBuffer[requestLen];
 
     requestBuffer[0] = slaveNetworkAddress;//slave addy
     requestBuffer[1] = readHoldingRegistersFunction;//function
-    requestBuffer[2] = 0x00;//start addy hi
-    requestBuffer[3] = registerAddress; //start addy lo
-    requestBuffer[4] = 0x00; //qty addy hi
-    requestBuffer[5] = 0x02; //qty addy lo
+
+//Setting Register Address
+    requestBuffer[2] = (uint8_t)(registerAddress>>8);//start addy hi (bitshift 16 bit address so that the highest 8 bits are in this 8 bit value)
+    requestBuffer[3] = (uint8_t)registerAddress; //start addy lo
+
+//Setting register quantity
+    if(conversionMethod == Integer) //integer values are stored in 1 register
+    {
+        requestBuffer[4] = 0x00; //qty addy hi
+        requestBuffer[5] = 0x02; //qty addy lo
+    }
+    else //floats and long values are stored in 2 registers
+    {
+        requestBuffer[4] = 0x00; //qty addy hi
+        requestBuffer[5] = 0x02; //qty addy lo
+    }
+    
+
+//Setting Cyclic Redundancy Check
     requestBuffer[6] = GetCrcLo(requestBuffer); //crc lo
     requestBuffer[7] = GetCrcHi(requestBuffer); //crc hi
 
@@ -169,10 +185,10 @@ double ModbusLib::readRegisterValue(int slaveNetworkAddress, uint8_t registerAdd
     switch(conversionMethod)
     {
         case Integer: //integer
-            
+            return intConversion(response);
             break;
         case LongInteger: //long integer
-            
+            return longConversion(response);
             break;
         case Real4: //real4 / float            
             return real4Conversion(response);
@@ -190,7 +206,7 @@ void ModbusLib::SetDebugMode(bool var)
 }
 
 //Utility Functions----------------------------------------------------------------------------------------------
-float ModbusLib::real4Conversion(uint8_t message[9])
+long ModbusLib::longConversion(uint8_t message[responseLen])
 {
     uint8_t data[4];
 	data[0] = message[3]; //8 bits
@@ -199,27 +215,71 @@ float ModbusLib::real4Conversion(uint8_t message[9])
 	data[3] = message[6]; //8 bits
 
 //combine into one value
-	int64_t binVal = 0; 
+	uint32_t binVal = 0; 
 	binVal = binVal | ((uint32_t)data[0] << 24);
 	binVal = binVal | ((uint32_t)data[1] << 16);
 	binVal = binVal | ((uint32_t)data[2] << 8);
 	binVal = binVal | ((uint32_t)data[3] << 0);
 
 //print for checking	
-	//SerialMon.print("Data Bits: ");
-	//SerialMon.println(binVal, BIN);
+	//Serial.print("Data Bits: ");
+	//Serial.println(binVal, BIN);
+
+//implicit conversion of the c langauge method
+    long value = *(long *)&binVal;
+
+    return value;
+}
+
+
+int ModbusLib::intConversion(uint8_t message[responseLen])
+{
+//the below is actually unnessesary and could be combined with the next step
+//nice to have for debugging though if you need to print individual bytes
+    uint8_t data[2];
+	data[0] = message[5]; //8 bits
+	data[1] = message[6]; //8 bits
+
+//combine into one value
+	int binVal = 0; 
+	binVal = binVal | ((uint16_t)data[0] << 8);
+	binVal = binVal | ((uint16_t)data[1] << 0);
+
+//print for checking	
+	//Serial.print("Int Data Bits: ");
+	//Serial.println(binVal, BIN);
+
+//implicit conversion of the c langauge method
+    int value = binVal;//*(int *)&binVal;
+
+    return value;
+}
+
+
+float ModbusLib::real4Conversion(uint8_t message[responseLen])
+{
+    uint8_t data[4];
+	data[0] = message[3]; //8 bits
+	data[1] = message[4]; //8 bits
+	data[2] = message[5]; //8 bits
+	data[3] = message[6]; //8 bits
+
+//combine into one value
+	int32_t binVal = 0; 
+	binVal = binVal | ((uint32_t)data[0] << 24);
+	binVal = binVal | ((uint32_t)data[1] << 16);
+	binVal = binVal | ((uint32_t)data[2] << 8);
+	binVal = binVal | ((uint32_t)data[3] << 0);
+
+//print for checking	
+	//Serial.print("Float Data Bits: ");
+	//Serial.println(binVal, BIN);
 
 //implicit conversion of the c langauge method
 	float value = *(float *)&binVal;
 	//taking the address of binVal,
 	//casts the address value to a pointer to a float (so now it 'is' a float reference)
 	//then when we dereference the pointer to get the value it reinterprets it as a float (and since floats are stored in the IEEE 754 way, it returns the correct value)
-
-    Serial.print("Actual Value: ");
-	Serial.println(value, DEC);
-	Serial.println();
-
-
     return value;
 }
 
@@ -238,7 +298,7 @@ uint8_t ModbusLib::GetCrcLo(uint8_t message[]) //returns the CRC low byte
   	{
     	crc ^= (uint16_t)message[pos];          // XOR byte into least sig. byte of crc
   
-		for (int i = 8; i != 0; i--) 
+		for (int i = requestLen; i != 0; i--) 
 		{    // Loop over each bit
 			if ((crc & 0x0001) != 0) 
 			{      // If the LSB is set
@@ -266,7 +326,7 @@ uint8_t ModbusLib::GetCrcHi(uint8_t message[]) //returns the CRC high byte
   	{
     	crc ^= (uint16_t)message[pos];          // XOR byte into least sig. byte of crc
   
-		for (int i = 8; i != 0; i--) 
+		for (int i = requestLen; i != 0; i--) 
 		{    // Loop over each bit
 			if ((crc & 0x0001) != 0) 
 			{      // If the LSB is set
