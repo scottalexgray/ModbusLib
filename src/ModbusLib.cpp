@@ -15,10 +15,10 @@
  * @arg deviceBRate [Mandatory] baud rate of deivce
  * @arg debugSerial [Mandatory] debug serial port reference
  */
-ModbusLib::ModbusLib(int serialPortNumber, int deviceBRate, int txPin, bool isDebugEnabled)
+ModbusLib::ModbusLib(int deviceSerialNumber, int deviceBRate, int txPin, bool isDebugEnabled)
 {
     //device stuff
-    deviceSerialNum = serialPortNumber;
+    deviceSerialNum = deviceSerialNumber;
     deviceBaudRate = deviceBRate;
     txEnablePin = txPin;
 
@@ -26,10 +26,10 @@ ModbusLib::ModbusLib(int serialPortNumber, int deviceBRate, int txPin, bool isDe
     debugEnabled = isDebugEnabled;
 
 }
-ModbusLib::ModbusLib(int serialPortNumber, int deviceBRate)
+ModbusLib::ModbusLib(int deviceSerialNumber, int deviceBRate)
 {
   // be sure not to call anything that requires hardware be initialized here, put those in begin()
-    deviceSerialNum = serialPortNumber;
+    deviceSerialNum = deviceSerialNumber;
     deviceBaudRate = deviceBRate;
 
     debugEnabled = false; //not strictly necessary as the default is disabled
@@ -87,8 +87,16 @@ void ModbusLib::sendRequest(uint8_t request[])
     }
 
     //Actually Sending Request--------------------------------------------
+    //before transmitting, read all to make sure there is nothing being sent
+    while(deviceSerialPort.available())
+    {
+        uint8_t readChar = deviceSerialPort.read();
+    }
+
+    deviceSerialPort.flush();
+
     digitalWrite(txEnablePin, HIGH); //set the transmit pin high 
-    delay(30);
+    //delay(30);
 
 	if(deviceSerialPort.availableForWrite())
 	{
@@ -106,28 +114,68 @@ void ModbusLib::sendRequest(uint8_t request[])
 uint8_t * ModbusLib::waitForResponse()
 {
     digitalWrite(txEnablePin, LOW); //set the transmit pin low (to receive data)
-    delay(30);
+    //delay(30);
 
     //static const int responseLength = 10;
     static uint8_t modbusReply[responseLen]; //buffer to store response (could optimise by making length 9)	
 
-	readStartTime = millis(); //the milliseconds since boot
+    //initialized to zero
+    for(int i = 0; i < responseLen; i++)
+    {
+        modbusReply[i] = 0;
+    }
 
-	int index = 0;
+	readStartTime = millis(); //the milliseconds since boot  
 
-	while(millis() < (readStartTime + readTimeoutMillis))
-	{
-		//SerialMon.println("Stuck here for tick");
-		if(deviceSerialPort.available() && index < responseLen) //Ensures data can be read, and that we don't overflow the modbusReply buffer
-		{
-			modbusReply[index] = deviceSerialPort.read();            		
-			index++;            
-		}
-		else
-		{
-			break;
-		}		
+       
+
+	int index = 0; 
+
+	while(millis() < (readStartTime + readTimeoutMillis)) //since the start
+	{  
+        while(deviceSerialPort.available())
+        {
+            if(index < responseLen)
+            {
+                modbusReply[index] = deviceSerialPort.read();            		
+                index++;
+            }
+            else
+            {                
+                break;
+            }
+        }
+        if(index >= responseLen)
+        {
+            if(debugEnabled)
+            {
+                Serial.println("Reached responseLen");
+            }
+            break;
+        }           			
 	}
+    if(index == 0)
+    {
+        //then nothing was read, timeout happened
+        if(debugEnabled)
+        {
+            Serial.println("No Message Received");
+        }
+    }
+    else if(index > 0 && index < responseLen)
+    {
+        if(debugEnabled)
+        {
+            Serial.println("Corrupt Message Received, Deleting Message");
+        }
+        for(int i = 0; i < responseLen; i++)
+        {
+            modbusReply[i] = 0;
+        }
+    }
+
+
+
     if(Serial.availableForWrite() && debugEnabled)
     {
         Serial.print("Response Received: ");
@@ -136,8 +184,16 @@ uint8_t * ModbusLib::waitForResponse()
             Serial.print(modbusReply[i], HEX);
             Serial.print(" ");		
         }
+        
+        //Time it took to read
+        Serial.print("| Time Taken: " + (String)(millis()-readStartTime) + "ms");
+        Serial.println();
         Serial.println();
     }
+
+
+
+
     return modbusReply;	
 }
 

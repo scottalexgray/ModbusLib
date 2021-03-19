@@ -23,8 +23,8 @@ public:
  * @arg deviceBRate [Mandatory] baud rate of deivce
  * @arg debugSerial [Mandatory] debug serial port reference
  */
-  ModbusLib(int serialPortNumber, int deviceBRate, int txPin, bool isDebugEnabled); //constructor for debugging
-  ModbusLib(int serialPortNumber, int deviceBRate); //constructor for normal operation
+  ModbusLib(int deviceSerialNumber, int deviceBRate, int txPin, bool isDebugEnabled); //constructor for debugging
+  ModbusLib(int deviceSerialNumber, int deviceBRate); //constructor for normal operation
 
   
   void begin(); //to be called in startup in main  
@@ -50,7 +50,7 @@ private:
   bool debugEnabled = false;
 
   //waiting for response variables
-  uint32_t readTimeoutMillis = 5000;
+  uint32_t readTimeoutMillis = 100;
   uint32_t readStartTime = 0;
 
   //modbus functions
