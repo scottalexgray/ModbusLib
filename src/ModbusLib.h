@@ -61,6 +61,8 @@ private:
   uint8_t * waitForResponse();
 
   //Utility Functions
+  void ClearSerialReadBuffer(); //this clears the incoming buffer (takes 10ms) to reduce errors
+
   float real4Conversion(uint8_t message[9]);
   int intConversion(uint8_t message[9]);
   long longConversion(uint8_t message[9]);

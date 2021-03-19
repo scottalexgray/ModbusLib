@@ -38,34 +38,40 @@ void setup()
   modbusLib.SetDebugMode(false);
 }
 
+
+
 void loop() 
 {
-  Serial.println("Slave 15 Readings:");
+  GetReadings(15);
+  GetReadings(16);
+  GetReadings(17);
+  GetReadings(18);
+  delay(5000);
+}
 
-  float id15 = modbusLib.readRegisterValue(15,id_addy, dataFormat::Real4);
-  float flowrate15 = modbusLib.readRegisterValue(15,flowrate_addy, dataFormat::Real4);
-  float soundspeed15 = modbusLib.readRegisterValue(15,soundspeed_addy, dataFormat::Real4);
-  float tomtos15 = modbusLib.readRegisterValue(15,tomtos_addy, dataFormat::Real4);
-  float netaccum15 = modbusLib.readRegisterValue(15,netaccum_addy, dataFormat::Real4);
-  float scale15 = modbusLib.readRegisterValue(15,scale_addy, dataFormat::Real4);
+void GetReadings(int deviceAddress)
+{
+  Serial.println("Slave " + (String)deviceAddress + " Readings:");
 
-  float up15 = 100*(float)modbusLib.readRegisterValue(15,up_addy, dataFormat::Integer)/4095;
-  float down15 = 100*(float)modbusLib.readRegisterValue(15,down_addy, dataFormat::Integer)/4095;
+  float id15 = modbusLib.readRegisterValue(deviceAddress,id_addy, Real4);
+  float flowrate15 = modbusLib.readRegisterValue(deviceAddress,flowrate_addy, Real4);
+  float soundspeed15 = modbusLib.readRegisterValue(deviceAddress,soundspeed_addy, Real4);
+  float tomtos15 = modbusLib.readRegisterValue(deviceAddress,tomtos_addy, Real4);
+  float netaccum15 = modbusLib.readRegisterValue(deviceAddress,netaccum_addy, Real4);
+  float scale15 = modbusLib.readRegisterValue(deviceAddress,scale_addy, Real4);
+  float up15 = 100*(float)modbusLib.readRegisterValue(deviceAddress,up_addy, Integer)/4095;
+  float down15 = 100*(float)modbusLib.readRegisterValue(deviceAddress,down_addy, Integer)/4095;
+  int qual15 = modbusLib.readRegisterValue(deviceAddress,qual_addy, Integer);
 
-  int qual15 = modbusLib.readRegisterValue(15,qual_addy, dataFormat::Integer);
-
-  Serial.println("Internal Diameter of slave 15: " + (String)id15);
-  Serial.println("Flowrate of slave 15: " + (String)flowrate15);
-  Serial.println("Soundspeed of slave 15: " + (String)soundspeed15);
-  Serial.println("Tomtos of slave 15: " + (String)tomtos15);
-  Serial.println("Net Accumulator of slave 15: " + (String)netaccum15);
-  Serial.println("Scale of slave 15: " + (String)scale15);
-  Serial.println("Upstream of slave 15: " + (String)up15);
-  Serial.println("Downstream of slave 15: " + (String)down15);
-  Serial.println("Quality of slave 15: " + (String)qual15);
+  Serial.println("Internal Diameter of slave " + (String)deviceAddress + ": " + (String)id15);
+  Serial.println("Flowrate of slave " + (String)deviceAddress + ": "  + (String)flowrate15);
+  Serial.println("Soundspeed of slave " + (String)deviceAddress + ": "  + (String)soundspeed15);
+  Serial.println("Tomtos of slave " + (String)deviceAddress + ": "  + (String)tomtos15);
+  Serial.println("Net Accumulator of slave " + (String)deviceAddress + ": "  + (String)netaccum15);
+  Serial.println("Scale of slave " + (String)deviceAddress + ": "  + (String)scale15);
+  Serial.println("Upstream of slave " + (String)deviceAddress + ": "  + (String)up15);
+  Serial.println("Downstream of slave " + (String)deviceAddress + ": "  + (String)down15);
+  Serial.println("Quality of slave " + (String)deviceAddress + ": "  + (String)qual15);
 
   Serial.println();
-  
-  delay(5000);
-
 }

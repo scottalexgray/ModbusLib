@@ -88,15 +88,9 @@ void ModbusLib::sendRequest(uint8_t request[])
 
     //Actually Sending Request--------------------------------------------
     //before transmitting, read all to make sure there is nothing being sent
-    while(deviceSerialPort.available())
-    {
-        uint8_t readChar = deviceSerialPort.read();
-    }
+    ClearSerialReadBuffer();
 
-    deviceSerialPort.flush();
-
-    digitalWrite(txEnablePin, HIGH); //set the transmit pin high 
-    //delay(30);
+    digitalWrite(txEnablePin, HIGH); //set the transmit pin high     
 
 	if(deviceSerialPort.availableForWrite())
 	{
@@ -114,7 +108,7 @@ void ModbusLib::sendRequest(uint8_t request[])
 uint8_t * ModbusLib::waitForResponse()
 {
     digitalWrite(txEnablePin, LOW); //set the transmit pin low (to receive data)
-    //delay(30);
+    
 
     //static const int responseLength = 10;
     static uint8_t modbusReply[responseLen]; //buffer to store response (could optimise by making length 9)	
@@ -151,6 +145,7 @@ uint8_t * ModbusLib::waitForResponse()
             {
                 Serial.println("Reached responseLen");
             }
+            
             break;
         }           			
 	}
@@ -172,6 +167,7 @@ uint8_t * ModbusLib::waitForResponse()
         {
             modbusReply[i] = 0;
         }
+        ClearSerialReadBuffer();
     }
 
 
@@ -262,6 +258,20 @@ void ModbusLib::SetDebugMode(bool var)
 }
 
 //Utility Functions----------------------------------------------------------------------------------------------
+void ModbusLib::ClearSerialReadBuffer()
+{
+    int clearStartTime = millis();
+    int clearWaitTime = 10; //ms
+    
+    while(deviceSerialPort.available() || (millis() < (clearStartTime + clearWaitTime)))
+    {
+        deviceSerialPort.read();
+    }  
+}
+
+
+
+
 long ModbusLib::longConversion(uint8_t message[responseLen])
 {
     uint8_t data[4];
