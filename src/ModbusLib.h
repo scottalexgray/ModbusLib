@@ -50,7 +50,7 @@ private:
   bool debugEnabled = false;
 
   //waiting for response variables
-  uint32_t readTimeoutMillis = 100;
+  uint32_t readTimeoutMillis = 300;//worked on the test bench with 100ms
   uint32_t readStartTime = 0;
 
   //modbus functions
